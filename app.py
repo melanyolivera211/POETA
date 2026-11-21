@@ -12,6 +12,7 @@ Responsabilidades (Sección 6, Sección 12 y Sección 17):
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +20,8 @@ from flask import Flask, Response, jsonify, send_from_directory
 from flask_cors import CORS
 
 from agent.core import PoetaAgent
-from api.ollama_client import LLMProvider, OllamaCloudClient
+from agent.scheduler import PoetaScheduler
+from api.ollama_client import LLMProvider, create_llm_provider
 from api.routes import api_bp
 from config import AppConfig, load_config
 from database.connection import DatabaseManager
@@ -67,7 +69,7 @@ def create_app(
         except Exception as exc:
             logger.warning("No se pudieron inicializar las tablas automáticamente: %s", exc)
 
-    resolved_llm = llm_provider or OllamaCloudClient(app_config)
+    resolved_llm = llm_provider or create_llm_provider(app_config)
     resolved_agent = agent or PoetaAgent(
         config=app_config,
         db_manager=resolved_db,
@@ -78,6 +80,24 @@ def create_app(
     app.config["POETA_DB"] = resolved_db
     app.config["POETA_LLM"] = resolved_llm
     app.config["POETA_AGENT"] = resolved_agent
+
+    # Planificador embebido para despliegues con un solo servicio Web en Render Free Tier
+    # (se desactiva automáticamente en pruebas o si se configura ENABLE_EMBEDDED_WORKER=false)
+    embedded_worker_enabled = (
+        os.getenv("ENABLE_EMBEDDED_WORKER", "true").strip().lower() == "true"
+    )
+    if (
+        embedded_worker_enabled
+        and not app_config.is_testing
+        and app_config.has_database_configured
+    ):
+        try:
+            embedded_scheduler = PoetaScheduler(agent=resolved_agent, config=app_config)
+            embedded_scheduler.start(run_recovery=True)
+            app.config["POETA_SCHEDULER"] = embedded_scheduler
+            logger.info("Planificador autónomo APScheduler activo dentro del servicio web.")
+        except Exception as exc:
+            logger.warning("No se pudo iniciar el planificador embebido: %s", exc)
 
     # Registrar Blueprint de la API REST
     app.register_blueprint(api_bp)

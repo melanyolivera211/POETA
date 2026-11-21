@@ -19,7 +19,7 @@ import logging
 from typing import Any
 import uuid
 
-from api.ollama_client import LLMProvider, LLMProviderError, OllamaCloudClient
+from api.ollama_client import LLMProvider, LLMProviderError, create_llm_provider
 from config import (
     AppConfig,
     ensure_utc,
@@ -60,7 +60,7 @@ class PoetaAgent:
     ) -> None:
         self.config = config or load_config()
         self.db_manager = db_manager or DatabaseManager(self.config)
-        self.llm_provider = llm_provider or OllamaCloudClient(self.config)
+        self.llm_provider = llm_provider or create_llm_provider(self.config)
         self.memory_repo = PersistentMemoryRepository(self.db_manager)
         self.poetry_engine = PoetryEngine(self.llm_provider)
         self.recovery_manager = RecoveryManager(self.config, self.memory_repo)
@@ -115,19 +115,19 @@ class PoetaAgent:
                 session,
                 AgentStatus.GENERATING,
                 poem_id=poem_id,
-                reason="Enviando solicitud de generación inicial (Intervención 1/6) a Ollama Cloud.",
+                reason="Enviando solicitud de generación inicial (Intervención 1/6) a Google Gemini.",
             )
             self.memory_repo.log_event(
                 session,
                 poem_id=poem_id,
-                event_type="OLLAMA_REQUEST_SENT",
-                description="Solicitud enviada a Ollama Cloud para generar título, temática y primera estrofa.",
+                event_type="GEMINI_REQUEST_SENT",
+                description="Solicitud enviada a Google Gemini para generar título, temática y primera estrofa.",
                 status="GENERATING",
                 scheduled_at=started_at,
                 actual_execution_at=started_at,
                 details={
                     "intervention_number": 1,
-                    "model": self.config.ollama_model,
+                    "model": self.config.active_ai_model,
                     "seed_theme": seed_theme,
                 },
             )
@@ -177,9 +177,9 @@ class PoetaAgent:
             self.memory_repo.log_event(
                 session,
                 poem_id=poem.id,
-                event_type="OLLAMA_RESPONSE_RECEIVED",
+                event_type="GEMINI_RESPONSE_RECEIVED",
                 description=(
-                    f"Respuesta recibida de Ollama Cloud ({draft.model_name}) en {draft.duration_ms} ms. "
+                    f"Respuesta recibida de Google Gemini ({draft.model_name}) en {draft.duration_ms} ms. "
                     f"Título creado: '{draft.title}'."
                 ),
                 status="SUCCESS",
@@ -317,9 +317,9 @@ class PoetaAgent:
             self.memory_repo.log_event(
                 session,
                 poem_id=poem.id,
-                event_type="OLLAMA_REQUEST_SENT",
+                event_type="GEMINI_REQUEST_SENT",
                 description=(
-                    f"Solicitud enviada a Ollama Cloud para la intervención "
+                    f"Solicitud enviada a Google Gemini para la intervención "
                     f"{next_intervention_num}/{memory.total_interventions} de '{memory.title}'."
                 ),
                 status="GENERATING",
@@ -435,9 +435,9 @@ class PoetaAgent:
             self.memory_repo.log_event(
                 session,
                 poem_id=poem.id,
-                event_type="OLLAMA_RESPONSE_RECEIVED",
+                event_type="GEMINI_RESPONSE_RECEIVED",
                 description=(
-                    f"Respuesta válida recibida de Ollama Cloud ({continuation.model_name}) "
+                    f"Respuesta válida recibida de Google Gemini ({continuation.model_name}) "
                     f"para la estrofa #{next_intervention_num} en {continuation.duration_ms} ms."
                 ),
                 status="SUCCESS",

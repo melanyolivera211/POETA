@@ -1,11 +1,5 @@
 """
 Fixtures compartidos para la suite de pruebas de POETA (tests/conftest.py).
-
-Proporciona:
-- Base de datos de pruebas independiente y aislada por cada test.
-- Proveedor de IA determinista para pruebas unitarias (`DeterministicLiteraryMockProvider`)
-  que permite verificar los prompts recibidos y simular fallos de red o respuestas defectuosas.
-- Configuración en modo normal (60 min / 10 min) y en modo acelerado (`APP_ENV=testing`).
 """
 
 from __future__ import annotations
@@ -16,7 +10,7 @@ from typing import Any
 import pytest
 
 from agent.core import PoetaAgent
-from api.ollama_client import LLMGenerationResult, LLMProvider, OllamaConnectionError
+from api.ollama_client import AIConnectionError, LLMGenerationResult, LLMProvider
 from config import AppConfig, load_config
 from database.connection import DatabaseManager
 
@@ -50,7 +44,7 @@ class DeterministicLiteraryMockProvider(LLMProvider):
             "lo fugaz se detiene para volverse eterno."
         ),
         4: (
-            "En la cúspide clara de la hora presente,\n"
+            "En la cúpide clara de la hora presente,\n"
             "convergen las mareas de lo que fue y aguarda,\n"
             "y el pulso del poema se levanta ferviente\n"
             "como lámpara viva que en la noche resguarda."
@@ -92,7 +86,7 @@ class DeterministicLiteraryMockProvider(LLMProvider):
         )
 
         if self.should_fail:
-            raise OllamaConnectionError(
+            raise AIConnectionError(
                 "Fallo de conexión simulado con el servidor de IA.",
                 duration_ms=120,
             )
@@ -101,7 +95,6 @@ class DeterministicLiteraryMockProvider(LLMProvider):
             content = self.custom_next_response
             self.custom_next_response = None
         else:
-            # Detectar qué número de intervención solicita el prompt
             intervention_idx = 1
             for i in range(2, 7):
                 if f"Intervención {i} de" in user_prompt:
@@ -111,7 +104,7 @@ class DeterministicLiteraryMockProvider(LLMProvider):
 
         return LLMGenerationResult(
             content=content,
-            model_name="gemma3:27b-test",
+            model_name="gemini-3.1-flash-lite-test",
             prompt_snapshot=f"[SYSTEM]\n{system_prompt}\n\n[USER]\n{user_prompt}",
             duration_ms=145,
             raw_metadata={"mock": True, "call": self.call_count},
@@ -119,12 +112,12 @@ class DeterministicLiteraryMockProvider(LLMProvider):
 
     def health_check(self) -> dict[str, Any]:
         return {
-            "provider": "mock_ollama_cloud",
+            "provider": "gemini",
             "configured": True,
             "available": not self.should_fail,
-            "model": "gemma3:27b-test",
+            "model": "gemini-3.1-flash-lite-test",
             "latency_ms": 5,
-            "message": "Proveedor de pruebas listo.",
+            "message": "Proveedor Gemini de pruebas listo.",
         }
 
 
@@ -136,9 +129,9 @@ def test_config(tmp_path: Path) -> AppConfig:
         overrides={
             "APP_ENV": "testing",
             "DATABASE_URL": f"sqlite:///{db_file.as_posix()}",
-            "OLLAMA_API_KEY": "test-key-not-exposed",
-            "OLLAMA_BASE_URL": "https://ollama.com/api",
-            "OLLAMA_MODEL": "gemma3:27b",
+            "GEMINI_API_KEY": "test-gemini-key-not-exposed",
+            "GEMINI_BASE_URL": "https://generativelanguage.googleapis.com/v1beta",
+            "GEMINI_MODEL": "gemini-3.1-flash-lite",
             "ADMIN_API_TOKEN": "test-admin-secret-token",
             "POETA_ACCELERATED_TEST": "false",
         }
@@ -153,9 +146,9 @@ def accelerated_config(tmp_path: Path) -> AppConfig:
         overrides={
             "APP_ENV": "testing",
             "DATABASE_URL": f"sqlite:///{db_file.as_posix()}",
-            "OLLAMA_API_KEY": "test-key-not-exposed",
-            "OLLAMA_BASE_URL": "https://ollama.com/api",
-            "OLLAMA_MODEL": "gemma3:27b",
+            "GEMINI_API_KEY": "test-gemini-key-not-exposed",
+            "GEMINI_BASE_URL": "https://generativelanguage.googleapis.com/v1beta",
+            "GEMINI_MODEL": "gemini-3.1-flash-lite",
             "ADMIN_API_TOKEN": "",
             "POETA_ACCELERATED_TEST": "true",
             "TEST_CYCLE_DURATION_SECONDS": "6",

@@ -36,7 +36,7 @@ def run_worker() -> None:
     logger.info(
         "Iniciando POETA Background Worker (entorno=%s, modelo=%s, intervalo=%ds, ciclo=%ds)...",
         config.app_env,
-        config.ollama_model,
+        config.active_ai_model,
         config.intervention_interval_seconds,
         config.cycle_duration_seconds,
     )

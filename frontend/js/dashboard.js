@@ -1,20 +1,26 @@
 /**
- * POETA — Dashboard Editorial de Monitoreo y Evolución Literaria (frontend/js/dashboard.js)
- *
- * Responsabilidades:
- * - Consultar de forma periódica y controlada la API Flask (`/api/agent/status`,
- *   `/api/poem/current`, `/api/poem/history`, `/api/poem/{id}/versions`,
- *   `/api/agent/logs`, `/api/agent/health`).
- * - Actualizar las 4 vistas obligatorias con datos reales procedentes de Supabase.
- * - Permitir iniciar un ciclo poético (`POST /api/agent/start`) únicamente cuando
- *   no exista otro activo.
- * - El navegador NUNCA ejecuta ni programa las intervenciones del agente.
+ * POETA — Dashboard Minimalista de Creación Literaria Autónoma (frontend/js/dashboard.js)
  */
 
 (() => {
   "use strict";
 
   const ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII"];
+
+  const EVENT_LABELS = {
+    AGENT_STARTED: "Agente Iniciado",
+    CYCLE_CREATED: "Ciclo Creado",
+    MEMORY_RECOVERED: "Memoria Recuperada",
+    GEMINI_REQUEST_SENT: "Petición a Gemini AI",
+    GEMINI_RESPONSE_RECEIVED: "Respuesta de Gemini AI",
+    STANZA_GENERATED: "Estrofa Generada",
+    VERSION_STORED: "Versión Almacenada",
+    INTERVENTION_COMPLETED: "Intervención Completada",
+    STATE_TRANSITION: "Cambio de Estado",
+    RECOVERY_COMPLETED: "Recuperación",
+    ERROR_DETECTED: "Error Detectado",
+    POEM_COMPLETED: "Poema Finalizado",
+  };
 
   const state = {
     agentStatus: null,
@@ -30,7 +36,6 @@
     liveCountdownTimer: null,
   };
 
-  // Referencias DOM
   const el = (id) => document.getElementById(id);
 
   function formatSecondsToMMSS(totalSeconds) {
@@ -54,12 +59,9 @@
     banner.classList.remove("hidden");
     setTimeout(() => {
       banner.classList.add("hidden");
-    }, 8000);
+    }, 7000);
   }
 
-  // ==========================================================================
-  // NAVEGACIÓN DE VISTAS
-  // ==========================================================================
   function switchView(targetViewId) {
     document.querySelectorAll(".dashboard-view").forEach((section) => {
       section.classList.toggle("active", section.id === targetViewId);
@@ -87,9 +89,6 @@
     });
   }
 
-  // ==========================================================================
-  // LLAMADAS A LA API REST DE POETA
-  // ==========================================================================
   async function fetchJson(url, options = {}) {
     const response = await fetch(url, {
       headers: {
@@ -111,24 +110,19 @@
     const aiChip = el("healthAiChip");
 
     if (backendChip) {
-      backendChip.textContent = "API: Operativa";
-      backendChip.className = "health-chip ok";
+      backendChip.textContent = "API";
+      backendChip.className = "service-chip ok";
     }
     if (dbChip) {
       const dbOk = Boolean(data.components.database?.available);
-      dbChip.textContent = dbOk ? "Supabase: Conectado" : "Supabase: Pendiente";
-      dbChip.className = `health-chip ${dbOk ? "ok" : "warn"}`;
+      dbChip.textContent = "Supabase";
+      dbChip.className = `service-chip ${dbOk ? "ok" : "warn"}`;
       dbChip.title = data.components.database?.message || "";
     }
     if (aiChip) {
       const aiOk = Boolean(data.components.ai_provider?.available);
-      const aiCfg = Boolean(data.components.ai_provider?.configured);
-      aiChip.textContent = aiOk
-        ? "Ollama Cloud: Listo"
-        : aiCfg
-        ? "Ollama Cloud: Error"
-        : "Ollama Cloud: Sin API Key";
-      aiChip.className = `health-chip ${aiOk ? "ok" : "warn"}`;
+      aiChip.textContent = "Gemini AI";
+      aiChip.className = `service-chip ${aiOk ? "ok" : "warn"}`;
       aiChip.title = data.components.ai_provider?.message || "";
     }
   }
@@ -202,22 +196,11 @@
         refreshHistory(state.historyPage),
         refreshLogs(state.logsPage),
       ]);
-      const syncEl = el("lastSyncText");
-      if (syncEl) {
-        const nowStr = new Date().toLocaleTimeString("es-CO", {
-          timeZone: "America/Bogota",
-          hour12: false,
-        });
-        syncEl.textContent = `Actualizado: ${nowStr}`;
-      }
     } catch (err) {
       console.error("Error sincronizando dashboard POETA:", err);
     }
   }
 
-  // ==========================================================================
-  // RENDERIZADO VISTA 1: PANEL PRINCIPAL
-  // ==========================================================================
   function renderHeaderAndMainPanel(statusData) {
     const status = statusData.agent_status || "IDLE";
     const isActive = Boolean(statusData.is_cycle_active);
@@ -225,9 +208,7 @@
     const latestPoem = statusData.latest_poem;
     const displayPoem = activePoem || latestPoem;
 
-    // Cabecera
-    const headerStatus = el("headerAgentStatus");
-    if (headerStatus) headerStatus.textContent = status;
+    if (el("headerAgentStatus")) el("headerAgentStatus").textContent = status;
 
     const statusDot = el("headerStatusDot");
     if (statusDot) {
@@ -242,39 +223,38 @@
       el("headerTimezone").textContent = statusData.display_timezone || "America/Bogota";
     }
     if (el("headerServerClock") && statusData.server_time_display) {
-      el("headerServerClock").textContent = statusData.server_time_display;
+      const timeOnly = statusData.server_time_display.split(" ")[1] || statusData.server_time_display;
+      el("headerServerClock").textContent = timeOnly;
     }
 
-    // Mostrar campo de token administrativo si el backend lo requiere
     const adminGroup = el("adminTokenGroup");
     if (adminGroup) {
       adminGroup.classList.toggle("hidden", !statusData.admin_auth_required);
     }
 
-    // Estado operativo en tarjeta principal
     const opText = el("workerOperationText");
     if (opText) {
       opText.textContent = isActive
-        ? `Ciclo activo en ejecución (${status})`
+        ? `Ciclo en curso · ${status}`
         : status === "COMPLETED"
-        ? "Último ciclo finalizado y archivado"
-        : "Agente en reposo (IDLE)";
+        ? "Obra completada"
+        : "Agente en reposo";
     }
 
     if (el("panelActivePoemTitle")) {
       el("panelActivePoemTitle").textContent = activePoem
         ? activePoem.title
         : latestPoem
-        ? `Última obra archivada: ${latestPoem.title}`
-        : "Sin ciclo activo en ejecución";
+        ? latestPoem.title
+        : "Listo para iniciar una nueva obra";
     }
 
     if (el("panelActivePoemTheme")) {
       el("panelActivePoemTheme").textContent = activePoem
-        ? `Temática: ${activePoem.theme}`
+        ? activePoem.theme
         : latestPoem
-        ? `Temática: ${latestPoem.theme}`
-        : "Inicie un ciclo de creación literaria para que POETA componga progresivamente una obra de 6 estrofas durante 60 minutos.";
+        ? latestPoem.theme
+        : "Ciclo autónomo de 60 minutos: una estrofa cada 10 minutos con memoria persistente en Supabase.";
     }
 
     const completedInterventions = Number(statusData.intervention_number || 0);
@@ -285,17 +265,13 @@
       el("panelProgressPercent").textContent = `${progressPercent}%`;
     }
     if (el("panelInterventionCounter")) {
-      el("panelInterventionCounter").textContent = `${completedInterventions} / ${totalInterventions}`;
+      el("panelInterventionCounter").textContent = `${completedInterventions} / ${totalInterventions} estrofas`;
     }
     if (el("cycleProgressBarFill")) {
       el("cycleProgressBarFill").style.width = `${Math.min(100, progressPercent)}%`;
     }
-    if (el("cycleProgressBarTrack")) {
-      el("cycleProgressBarTrack").setAttribute("aria-valuenow", String(Math.round(progressPercent)));
-    }
 
-    // Hitos de los 60 minutos
-    document.querySelectorAll("#cycleMilestonesGrid .milestone-step").forEach((stepEl) => {
+    document.querySelectorAll("#cycleMilestonesGrid .step-item").forEach((stepEl) => {
       const stepAttr = stepEl.getAttribute("data-step");
       stepEl.classList.remove("done", "current");
       if (stepAttr === "close") {
@@ -314,19 +290,15 @@
       }
     });
 
-    // Botón de inicio de ciclo (deshabilitado si ya hay un poema activo)
     const btnStart = el("btnStartCycle");
     const btnStartText = el("btnStartCycleText");
     const seedInput = el("seedThemeInput");
     if (btnStart && btnStartText) {
       btnStart.disabled = isActive;
       if (seedInput) seedInput.disabled = isActive;
-      btnStartText.textContent = isActive
-        ? "Ciclo Poético en Ejecución (Creación Bloqueada)"
-        : "Iniciar Ciclo Poético de 60 Minutos";
+      btnStartText.textContent = isActive ? "Ciclo en Curso" : "Iniciar Ciclo";
     }
 
-    // Métricas temporales
     if (el("metricElapsed")) {
       el("metricElapsed").textContent = formatSecondsToMMSS(statusData.elapsed_seconds);
     }
@@ -334,36 +306,26 @@
       el("metricRemaining").textContent = formatSecondsToMMSS(statusData.remaining_seconds);
     }
     if (el("metricNextExecution")) {
-      el("metricNextExecution").textContent =
-        statusData.next_execution_display || "Sin ejecución pendiente";
+      el("metricNextExecution").textContent = statusData.next_execution_display || "—";
     }
     if (el("metricLastExecution")) {
-      el("metricLastExecution").textContent =
-        statusData.last_execution_display || "Sin ejecuciones registradas";
-    }
-    if (el("metricLastState")) {
-      el("metricLastState").textContent = `Estado de máquina: ${status}`;
+      el("metricLastExecution").textContent = statusData.last_execution_display || "—";
     }
 
-    // Vista previa de la última estrofa
     const previewEl = el("panelLatestStanzaPreview");
     if (previewEl) {
       const stanzas = displayPoem?.stanzas || [];
       if (stanzas.length > 0) {
         const lastIdx = stanzas.length - 1;
-        previewEl.textContent = `[Estrofa ${ROMAN_NUMERALS[lastIdx] || lastIdx + 1}]\n${stanzas[lastIdx]}`;
+        previewEl.textContent = stanzas[lastIdx];
       } else {
-        previewEl.textContent = "Aún no hay versos generados en el ciclo actual.";
+        previewEl.textContent = "Aún no se han generado versos en este ciclo.";
       }
     }
   }
 
-  // ==========================================================================
-  // RENDERIZADO VISTA 2: POEMA ACTUAL Y ARCHIVO
-  // ==========================================================================
   function renderPoemFolio(poem, isActive) {
     const badge = el("folioCycleBadge");
-    const idEl = el("folioPoemId");
     const titleEl = el("folioTitle");
     const themeEl = el("folioTheme");
     const statusEl = el("folioStatus");
@@ -373,38 +335,30 @@
     const container = el("folioStanzasContainer");
 
     if (!poem) {
-      if (badge) badge.textContent = "SIN COMPOSICIÓN REGISTRADA";
-      if (idEl) idEl.textContent = "ID: --";
-      if (titleEl) titleEl.textContent = "Esperando el inicio del primer ciclo poético";
-      if (themeEl) {
-        themeEl.textContent =
-          "Inicie POETA desde el Panel Principal para generar el título, la temática y la primera estrofa.";
-      }
+      if (badge) badge.textContent = "EN ESPERA";
+      if (titleEl) titleEl.textContent = "Sin composición activa";
+      if (themeEl) themeEl.textContent = "Inicia un ciclo desde el Panel para comenzar la obra.";
       if (statusEl) statusEl.textContent = "IDLE";
-      if (intEl) intEl.textContent = "0 de 6";
-      if (startEl) startEl.textContent = "--";
-      if (updEl) updEl.textContent = "--";
+      if (intEl) intEl.textContent = "0 / 6 estrofas";
+      if (startEl) startEl.textContent = "—";
+      if (updEl) updEl.textContent = "—";
       if (container) {
-        container.innerHTML =
-          '<p class="empty-literary-state">No hay estrofas almacenadas en Supabase todavía.</p>';
+        container.innerHTML = '<p class="empty-state">No hay estrofas almacenadas todavía.</p>';
       }
       return;
     }
 
     if (badge) {
-      badge.textContent = isActive
-        ? "COMPOSICIÓN ACTIVA EN EVOLUCIÓN"
-        : "OBRA FINALIZADA Y ARCHIVADA EN SUPABASE";
+      badge.textContent = isActive ? "OBRA EN CURSO" : "OBRA ARCHIVADA";
     }
-    if (idEl) idEl.textContent = `ID: ${poem.id}`;
     if (titleEl) titleEl.textContent = poem.title;
     if (themeEl) themeEl.textContent = poem.theme;
     if (statusEl) statusEl.textContent = poem.status;
     if (intEl) {
-      intEl.textContent = `${poem.completed_interventions} de ${poem.total_interventions}`;
+      intEl.textContent = `${poem.completed_interventions} / ${poem.total_interventions} estrofas`;
     }
-    if (startEl) startEl.textContent = poem.started_at_display || "--";
-    if (updEl) updEl.textContent = poem.updated_at_display || "--";
+    if (startEl) startEl.textContent = poem.started_at_display || "—";
+    if (updEl) updEl.textContent = poem.updated_at_display || "—";
 
     if (!container) return;
 
@@ -412,32 +366,34 @@
     const stanzas = poem.stanzas || [];
 
     if (versions.length === 0 && stanzas.length === 0) {
-      container.innerHTML =
-        '<p class="empty-literary-state">Preparando la primera estrofa con Ollama Cloud...</p>';
+      container.innerHTML = '<p class="empty-state">Generando primera estrofa...</p>';
       return;
     }
 
-    const blocksHtml = (versions.length > 0 ? versions : stanzas.map((s, idx) => ({
-      intervention_number: idx + 1,
-      added_stanza: s,
-      generated_at_display: poem.updated_at_display || "--",
-      model_name: "--",
-    }))).map((v) => {
-      const idx = (v.intervention_number || 1) - 1;
-      const roman = ROMAN_NUMERALS[idx] || String(v.intervention_number);
-      const minuteMark = idx * 10;
-      return `
-        <article class="stanza-block">
-          <div class="stanza-block-header">
-            <span class="stanza-roman">ESTROFA ${escapeHtml(roman)} &middot; INTERVENCIÓN ${v.intervention_number}/6 (MINUTO ${String(minuteMark).padStart(2, "0")})</span>
-            <span>${escapeHtml(v.generated_at_display || "")}</span>
-          </div>
-          <div class="stanza-verses">${escapeHtml(v.added_stanza)}</div>
-        </article>
-      `;
-    });
+    const list =
+      versions.length > 0
+        ? versions
+        : stanzas.map((s, idx) => ({
+            intervention_number: idx + 1,
+            added_stanza: s,
+            generated_at_display: poem.updated_at_display || "",
+          }));
 
-    container.innerHTML = blocksHtml.join("");
+    container.innerHTML = list
+      .map((v) => {
+        const idx = (v.intervention_number || 1) - 1;
+        const roman = ROMAN_NUMERALS[idx] || String(v.intervention_number);
+        return `
+          <article class="stanza-block">
+            <div class="stanza-block-header">
+              <span class="stanza-roman">${escapeHtml(roman)}</span>
+              <span class="stanza-time">${escapeHtml(v.generated_at_display || "")}</span>
+            </div>
+            <div class="stanza-verses">${escapeHtml(v.added_stanza)}</div>
+          </article>
+        `;
+      })
+      .join("");
   }
 
   function renderHistorySidebar(items, pagination) {
@@ -445,7 +401,7 @@
     if (!listEl) return;
 
     if (!items || items.length === 0) {
-      listEl.innerHTML = '<p class="empty-small">No hay poemas finalizados en el archivo.</p>';
+      listEl.innerHTML = '<p class="empty-small">Sin obras archivadas aún.</p>';
     } else {
       listEl.innerHTML = items
         .map(
@@ -480,17 +436,12 @@
     const nextBtn = el("btnHistoryNext");
     const infoEl = el("historyPageInfo");
     if (prevBtn) prevBtn.disabled = (pagination?.page || 1) <= 1;
-    if (nextBtn) {
-      nextBtn.disabled = (pagination?.page || 1) >= (pagination?.total_pages || 1);
-    }
+    if (nextBtn) nextBtn.disabled = (pagination?.page || 1) >= (pagination?.total_pages || 1);
     if (infoEl) {
-      infoEl.textContent = `Página ${pagination?.page || 1} de ${Math.max(1, pagination?.total_pages || 1)}`;
+      infoEl.textContent = `${pagination?.page || 1} / ${Math.max(1, pagination?.total_pages || 1)}`;
     }
   }
 
-  // ==========================================================================
-  // RENDERIZADO VISTA 3: EVOLUCIÓN LITERARIA (COMPARADOR DE VERSIONES)
-  // ==========================================================================
   function renderEvolutionView(poem, versions) {
     const titleEl = el("evolutionPoemTitle");
     const pillsBar = el("versionPillsBar");
@@ -498,13 +449,13 @@
     const selectB = el("selectVersionB");
 
     if (titleEl) {
-      titleEl.textContent = poem ? `${poem.title} (${versions.length}/6 versiones)` : "Ninguna obra seleccionada";
+      titleEl.textContent = poem
+        ? `${poem.title} · ${versions.length} de 6 versiones`
+        : "Ninguna obra seleccionada";
     }
 
     if (!versions || versions.length === 0) {
-      if (pillsBar) {
-        pillsBar.innerHTML = '<span class="empty-small">Sin versiones almacenadas aún.</span>';
-      }
+      if (pillsBar) pillsBar.innerHTML = "";
       if (selectA) selectA.innerHTML = "<option>Sin versiones</option>";
       if (selectB) selectB.innerHTML = "<option>Sin versiones</option>";
       renderVersionComparisonPanes(null, null);
@@ -516,7 +467,7 @@
         .map(
           (v, idx) => `
           <button type="button" class="version-pill ${idx === versions.length - 1 ? "active" : ""}" data-v-num="${v.intervention_number}">
-            Versión ${v.intervention_number} (Min ${String((v.intervention_number - 1) * 10).padStart(2, "0")})
+            V${v.intervention_number} (${String((v.intervention_number - 1) * 10).padStart(2, "0")}m)
           </button>
         `
         )
@@ -538,7 +489,7 @@
     const optionsHtml = versions
       .map(
         (v) =>
-          `<option value="${v.intervention_number}">Versión ${v.intervention_number} — Estrofa ${ROMAN_NUMERALS[v.intervention_number - 1] || v.intervention_number} (${escapeHtml(v.generated_at_display || "")})</option>`
+          `<option value="${v.intervention_number}">Versión ${v.intervention_number} — Estrofa ${ROMAN_NUMERALS[v.intervention_number - 1] || v.intervention_number}</option>`
       )
       .join("");
 
@@ -579,83 +530,59 @@
 
   function renderVersionComparisonPanes(verA, verB) {
     if (!verA || !verB) {
-      if (el("paneABadge")) el("paneABadge").textContent = "Versión --";
-      if (el("paneAMeta")) el("paneAMeta").textContent = "--";
-      if (el("paneAAddedStanza")) el("paneAAddedStanza").textContent = "Sin datos";
-      if (el("paneAFullText")) el("paneAFullText").textContent = "Sin datos";
-      if (el("paneBBadge")) el("paneBBadge").textContent = "Versión --";
-      if (el("paneBMeta")) el("paneBMeta").textContent = "--";
-      if (el("paneBAddedStanza")) el("paneBAddedStanza").textContent = "Sin datos";
-      if (el("paneBFullText")) el("paneBFullText").textContent = "Sin datos";
+      if (el("paneABadge")) el("paneABadge").textContent = "Versión —";
+      if (el("paneAMeta")) el("paneAMeta").textContent = "—";
+      if (el("paneAAddedStanza")) el("paneAAddedStanza").textContent = "—";
+      if (el("paneAFullText")) el("paneAFullText").textContent = "—";
+      if (el("paneBBadge")) el("paneBBadge").textContent = "Versión —";
+      if (el("paneBMeta")) el("paneBMeta").textContent = "—";
+      if (el("paneBAddedStanza")) el("paneBAddedStanza").textContent = "—";
+      if (el("paneBFullText")) el("paneBFullText").textContent = "—";
       if (el("evolutionPromptSnapshot")) {
-        el("evolutionPromptSnapshot").textContent = "Seleccione una versión para inspeccionar su prompt.";
+        el("evolutionPromptSnapshot").textContent = "Sin versión seleccionada.";
       }
       return;
     }
 
-    if (el("paneABadge")) {
-      el("paneABadge").textContent = `Versión ${verA.intervention_number} (Intervención #${verA.intervention_number})`;
-    }
+    if (el("paneABadge")) el("paneABadge").textContent = `Versión ${verA.intervention_number}`;
     if (el("paneAMeta")) {
-      el("paneAMeta").textContent = `${verA.generated_at_display || ""} · ${verA.model_name} · ${verA.generation_duration_ms} ms`;
+      el("paneAMeta").textContent = `${verA.generated_at_display || ""} · ${verA.generation_duration_ms} ms`;
     }
     if (el("paneAAddedStanza")) el("paneAAddedStanza").textContent = verA.added_stanza;
     if (el("paneAFullText")) el("paneAFullText").textContent = verA.full_text;
 
-    if (el("paneBBadge")) {
-      el("paneBBadge").textContent = `Versión ${verB.intervention_number} (Intervención #${verB.intervention_number})`;
-    }
+    if (el("paneBBadge")) el("paneBBadge").textContent = `Versión ${verB.intervention_number}`;
     if (el("paneBMeta")) {
-      el("paneBMeta").textContent = `${verB.generated_at_display || ""} · ${verB.model_name} · ${verB.generation_duration_ms} ms`;
+      el("paneBMeta").textContent = `${verB.generated_at_display || ""} · ${verB.generation_duration_ms} ms`;
     }
     if (el("paneBAddedStanza")) el("paneBAddedStanza").textContent = verB.added_stanza;
     if (el("paneBFullText")) el("paneBFullText").textContent = verB.full_text;
 
     if (el("evolutionPromptSnapshot")) {
-      el("evolutionPromptSnapshot").textContent =
-        verB.prompt_snapshot || "Snapshot de prompt no disponible.";
+      el("evolutionPromptSnapshot").textContent = verB.prompt_snapshot || "";
     }
   }
 
-  // ==========================================================================
-  // RENDERIZADO VISTA 4: REGISTRO DE ACTIVIDAD (TIMELINE)
-  // ==========================================================================
   function renderActivityLogs(items, pagination) {
     const container = el("activityTimelineContainer");
     if (!container) return;
 
     if (!items || items.length === 0) {
-      container.innerHTML =
-        '<p class="empty-literary-state">No existen eventos registrados para el filtro seleccionado.</p>';
+      container.innerHTML = '<p class="empty-state">No hay eventos registrados aún.</p>';
     } else {
       container.innerHTML = items
         .map((log) => {
-          const traceParts = [];
-          if (log.scheduled_at_bogota) {
-            traceParts.push(`<span>Programada: ${escapeHtml(log.scheduled_at_bogota)}</span>`);
-          }
-          if (log.actual_execution_at_bogota) {
-            traceParts.push(`<span>Ejecución real: ${escapeHtml(log.actual_execution_at_bogota)}</span>`);
-          }
-          if (log.details?.duration_ms != null) {
-            traceParts.push(`<span>Duración IA: ${escapeHtml(log.details.duration_ms)} ms</span>`);
-          }
-
+          const label = EVENT_LABELS[log.event_type] || log.event_type;
           return `
             <div class="timeline-event">
-              <div class="timeline-event-header">
-                <div>
-                  <span class="event-type-tag">${escapeHtml(log.event_type)}</span>
+              <div class="event-main">
+                <div class="event-badges">
+                  <span class="event-type-tag">${escapeHtml(label)}</span>
                   <span class="event-status-tag ${escapeHtml(log.status)}">${escapeHtml(log.status)}</span>
                 </div>
-                <span class="event-timestamp">${escapeHtml(log.created_at_display || log.created_at_bogota || "")}</span>
+                <p class="event-description">${escapeHtml(log.description)}</p>
               </div>
-              <p class="event-description">${escapeHtml(log.description)}</p>
-              ${
-                traceParts.length > 0
-                  ? `<div class="event-trace-times">${traceParts.join("")}</div>`
-                  : ""
-              }
+              <span class="event-timestamp">${escapeHtml(log.created_at_display || "")}</span>
             </div>
           `;
         })
@@ -666,17 +593,12 @@
     const nextBtn = el("btnLogsNext");
     const infoEl = el("logsPageInfo");
     if (prevBtn) prevBtn.disabled = (pagination?.page || 1) <= 1;
-    if (nextBtn) {
-      nextBtn.disabled = (pagination?.page || 1) >= (pagination?.total_pages || 1);
-    }
+    if (nextBtn) nextBtn.disabled = (pagination?.page || 1) >= (pagination?.total_pages || 1);
     if (infoEl) {
-      infoEl.textContent = `Página ${pagination?.page || 1} de ${Math.max(1, pagination?.total_pages || 1)} (${pagination?.total || 0} eventos)`;
+      infoEl.textContent = `Página ${pagination?.page || 1} de ${Math.max(1, pagination?.total_pages || 1)}`;
     }
   }
 
-  // ==========================================================================
-  // EVENTOS E INTERACCIÓN DEL USUARIO
-  // ==========================================================================
   function setupEventListeners() {
     const startForm = el("startCycleForm");
     if (startForm) {
@@ -688,7 +610,7 @@
         const adminToken = el("adminTokenInput")?.value?.trim() || "";
 
         if (btn) btn.disabled = true;
-        if (btnText) btnText.textContent = "Solicitando generación inicial a Ollama Cloud...";
+        if (btnText) btnText.textContent = "Generando...";
 
         const headers = { "Content-Type": "application/json" };
         if (adminToken) {
@@ -704,52 +626,38 @@
 
           if (!ok) {
             showAlert(
-              data?.message || "No fue posible iniciar el ciclo de creación literaria.",
+              data?.message || "No fue posible iniciar el ciclo de creación.",
               "error"
             );
           } else {
             showAlert(
-              `Ciclo iniciado con éxito: "${data.poem?.title || "Nueva composición"}".`,
+              `Ciclo iniciado: "${data.poem?.title || "Nueva obra"}".`,
               "success"
             );
             state.inspectedPoemId = data.poem?.id || null;
             if (el("seedThemeInput")) el("seedThemeInput").value = "";
           }
         } catch (err) {
-          showAlert(`Error de red al intentar iniciar el ciclo: ${err}`, "error");
+          showAlert(`Error de red al iniciar el ciclo: ${err}`, "error");
         } finally {
           await refreshAllDashboard();
         }
       });
     }
 
-    const btnRefresh = el("btnManualRefresh");
-    if (btnRefresh) {
-      btnRefresh.addEventListener("click", () => {
-        refreshAllDashboard();
-      });
-    }
+    el("btnManualRefresh")?.addEventListener("click", () => refreshAllDashboard());
 
-    const btnRestoreCurrent = el("btnRestoreCurrentPoem");
-    if (btnRestoreCurrent) {
-      btnRestoreCurrent.addEventListener("click", () => {
-        state.inspectedPoemId = state.currentPoem?.id || null;
-        refreshCurrentPoem();
-      });
-    }
+    el("btnRestoreCurrentPoem")?.addEventListener("click", () => {
+      state.inspectedPoemId = state.currentPoem?.id || null;
+      refreshCurrentPoem();
+    });
 
-    const selectA = el("selectVersionA");
-    const selectB = el("selectVersionB");
-    if (selectA) {
-      selectA.addEventListener("change", () =>
-        updateComparisonFromSelects(state.inspectedVersions)
-      );
-    }
-    if (selectB) {
-      selectB.addEventListener("change", () =>
-        updateComparisonFromSelects(state.inspectedVersions)
-      );
-    }
+    el("selectVersionA")?.addEventListener("change", () =>
+      updateComparisonFromSelects(state.inspectedVersions)
+    );
+    el("selectVersionB")?.addEventListener("change", () =>
+      updateComparisonFromSelects(state.inspectedVersions)
+    );
 
     const logFilter = el("logEventTypeFilter");
     if (logFilter) {
@@ -783,7 +691,6 @@
       }
     }, 10000);
 
-    // Reloj suave local para avanzar tiempo transcurrido/restante entre polls de 10s
     if (state.liveCountdownTimer) clearInterval(state.liveCountdownTimer);
     state.liveCountdownTimer = setInterval(() => {
       if (!state.agentStatus || !state.agentStatus.is_cycle_active) return;

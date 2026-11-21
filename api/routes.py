@@ -119,6 +119,9 @@ def start_agent_cycle() -> tuple[Response, int]:
 
     try:
         poem_summary = agent.start_cycle(seed_theme=seed_theme)
+        embedded_scheduler = current_app.config.get("POETA_SCHEDULER")
+        if embedded_scheduler is not None:
+            embedded_scheduler.sync_jobs_from_database()
         status_payload = agent.get_agent_status_payload()
         return (
             jsonify(

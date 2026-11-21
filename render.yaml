@@ -2,12 +2,6 @@
 # POETA: Agente Persistente de Creación Literaria Autónoma
 # Blueprint de Despliegue en Render (render.yaml)
 # ==============================================================================
-# IMPORTANTE SOBRE PLANES Y COSTOS EN RENDER:
-# 1. `poeta-api` (type: web): Render ofrece un plan `free` (se suspende tras 15 min
-#    sin tráfico HTTP) o `starter` ($7 USD/mes, siempre activo).
-# 2. `poeta-worker` (type: worker): Render NO ofrece un plan gratuito para
-#    Background Workers. Requiere como mínimo el plan `starter` ($7 USD/mes).
-# ==============================================================================
 
 services:
   # ----------------------------------------------------------------------------
@@ -18,20 +12,22 @@ services:
     runtime: python
     plan: starter
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120
     healthCheckPath: /api/agent/health
     envVars:
       - key: APP_ENV
         value: production
       - key: DISPLAY_TIMEZONE
         value: America/Bogota
-      - key: OLLAMA_BASE_URL
-        value: https://ollama.com/api
-      - key: OLLAMA_MODEL
-        value: gemma3:27b
-      - key: OLLAMA_TIMEOUT_SECONDS
+      - key: AI_PROVIDER
+        value: gemini
+      - key: GEMINI_BASE_URL
+        value: https://generativelanguage.googleapis.com/v1beta
+      - key: GEMINI_MODEL
+        value: gemini-3.1-flash-lite
+      - key: GEMINI_TIMEOUT_SECONDS
         value: "60"
-      - key: OLLAMA_MAX_RETRIES
+      - key: GEMINI_MAX_RETRIES
         value: "2"
       - key: SECRET_KEY
         generateValue: true
@@ -45,7 +41,7 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
-      - key: OLLAMA_API_KEY
+      - key: GEMINI_API_KEY
         sync: false
 
   # ----------------------------------------------------------------------------
@@ -64,13 +60,15 @@ services:
         value: America/Bogota
       - key: WORKER_POLL_SECONDS
         value: "15"
-      - key: OLLAMA_BASE_URL
-        value: https://ollama.com/api
-      - key: OLLAMA_MODEL
-        value: gemma3:27b
-      - key: OLLAMA_TIMEOUT_SECONDS
+      - key: AI_PROVIDER
+        value: gemini
+      - key: GEMINI_BASE_URL
+        value: https://generativelanguage.googleapis.com/v1beta
+      - key: GEMINI_MODEL
+        value: gemini-3.1-flash-lite
+      - key: GEMINI_TIMEOUT_SECONDS
         value: "60"
-      - key: OLLAMA_MAX_RETRIES
+      - key: GEMINI_MAX_RETRIES
         value: "2"
       - key: DATABASE_URL
         sync: false
@@ -78,5 +76,5 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
-      - key: OLLAMA_API_KEY
+      - key: GEMINI_API_KEY
         sync: false

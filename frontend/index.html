@@ -3,106 +3,73 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>POETA — Agente Persistente de Creación Literaria Autónoma</title>
-  <meta name="description" content="Panel editorial de monitoreo, memoria persistente y evolución literaria del agente autónomo POETA." />
+  <title>POETA — Creación Literaria Autónoma</title>
+  <meta name="description" content="Agente inteligente persistente de creación poética autónoma con Google Gemini y Supabase." />
   <link rel="icon" type="image/svg+xml" href="/assets/poeta-monogram.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400;1,600&family=JetBrains+Mono:wght@400;500;600&family=Libre+Bodoni:ital,wght@0,400;0,600;0,700;1,400&family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400;1,600&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/styles.css" />
 </head>
 <body>
-  <!-- Cabecera Editorial (Masthead) -->
-  <header class="masthead" role="banner">
-    <div class="masthead-inner container">
-      <div class="masthead-brand">
-        <img src="/assets/poeta-monogram.svg" alt="" aria-hidden="true" class="brand-monogram" />
-        <div class="brand-titles">
-          <div class="brand-overline">EDICIÓN AUTÓNOMA &middot; MEMORIA PERSISTENTE EN SUPABASE &middot; OLLAMA CLOUD</div>
-          <h1 class="brand-name">POETA</h1>
-          <p class="brand-subtitle">Agente Persistente de Creación Literaria Autónoma</p>
+  <!-- Barra Superior Minimalista -->
+  <header class="topbar" role="banner">
+    <div class="topbar-inner container">
+      <!-- Marca -->
+      <div class="brand">
+        <img src="/assets/poeta-monogram.svg" alt="" aria-hidden="true" class="brand-logo" />
+        <div>
+          <div class="brand-title-row">
+            <h1 class="brand-name">POETA</h1>
+            <span class="status-pill" id="headerStatusPill">
+              <span class="status-dot" id="headerStatusDot" aria-hidden="true"></span>
+              <strong id="headerAgentStatus">IDLE</strong>
+            </span>
+          </div>
+          <p class="brand-tagline">Agente Persistente de Creación Literaria</p>
         </div>
       </div>
 
-      <div class="masthead-telemetry" aria-live="polite">
-        <div class="status-pill-wrapper">
-          <span class="status-dot" id="headerStatusDot" aria-hidden="true"></span>
-          <span class="status-label">ESTADO DEL AGENTE:</span>
-          <strong class="status-badge" id="headerAgentStatus">CARGANDO...</strong>
+      <!-- Navegación Segmentada Central -->
+      <nav class="main-nav" aria-label="Vistas principales">
+        <div class="nav-tabs" role="tablist">
+          <button type="button" class="nav-tab active" role="tab" aria-selected="true" data-view="view-panel" id="tab-panel">
+            <span>Panel</span>
+          </button>
+          <button type="button" class="nav-tab" role="tab" aria-selected="false" data-view="view-poem" id="tab-poem">
+            <span>Poema Actual</span>
+          </button>
+          <button type="button" class="nav-tab" role="tab" aria-selected="false" data-view="view-evolution" id="tab-evolution">
+            <span>Evolución (1–6)</span>
+          </button>
+          <button type="button" class="nav-tab" role="tab" aria-selected="false" data-view="view-logs" id="tab-logs">
+            <span>Actividad</span>
+          </button>
         </div>
-        <div class="timezone-meta">
-          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.75" fill="none"/>
-            <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
-          </svg>
-          <span>Zona horaria: <strong id="headerTimezone">America/Bogota</strong></span>
-          <span class="sep">&middot;</span>
-          <span id="headerServerClock">--:--:--</span>
+      </nav>
+
+      <!-- Estado de Servicios y Reloj -->
+      <div class="topbar-meta">
+        <div class="service-pills" id="healthPillsContainer">
+          <span class="service-chip" id="healthBackendChip">API</span>
+          <span class="service-chip" id="healthDbChip">Supabase</span>
+          <span class="service-chip" id="healthAiChip">Gemini AI</span>
         </div>
-        <div class="health-indicators" id="healthPillsContainer" aria-label="Estado de servicios conectados">
-          <span class="health-chip" id="healthBackendChip">API: --</span>
-          <span class="health-chip" id="healthDbChip">Supabase: --</span>
-          <span class="health-chip" id="healthAiChip">Ollama Cloud: --</span>
+        <div class="clock-row">
+          <span id="headerTimezone">America/Bogota</span>
+          <span>&middot;</span>
+          <span id="headerServerClock">--:--</span>
+          <button type="button" class="btn-icon" id="btnManualRefresh" title="Sincronizar ahora">
+            <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16M16 16h5v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </button>
         </div>
       </div>
     </div>
-
-    <!-- Navegación entre las 4 Vistas Obligatorias -->
-    <nav class="editorial-nav container" aria-label="Vistas del sistema POETA">
-      <ul class="nav-tabs" role="tablist">
-        <li role="presentation">
-          <button type="button" class="nav-tab active" role="tab" aria-selected="true" aria-controls="view-panel" data-view="view-panel" id="tab-panel">
-            <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.75" fill="none"/>
-              <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.75" fill="none"/>
-              <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.75" fill="none"/>
-              <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.75" fill="none"/>
-            </svg>
-            <span>I. Panel Principal</span>
-          </button>
-        </li>
-        <li role="presentation">
-          <button type="button" class="nav-tab" role="tab" aria-selected="false" aria-controls="view-poem" data-view="view-poem" id="tab-poem">
-            <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="currentColor" stroke-width="1.75" fill="none"/>
-            </svg>
-            <span>II. Poema Actual</span>
-          </button>
-        </li>
-        <li role="presentation">
-          <button type="button" class="nav-tab" role="tab" aria-selected="false" aria-controls="view-evolution" data-view="view-evolution" id="tab-evolution">
-            <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-            </svg>
-            <span>III. Evolución Literaria</span>
-          </button>
-        </li>
-        <li role="presentation">
-          <button type="button" class="nav-tab" role="tab" aria-selected="false" aria-controls="view-logs" data-view="view-logs" id="tab-logs">
-            <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" fill="none"/>
-            </svg>
-            <span>IV. Registro de Actividad</span>
-          </button>
-        </li>
-      </ul>
-
-      <div class="nav-actions">
-        <span class="auto-refresh-indicator" id="lastSyncText">Sincronizando...</span>
-        <button type="button" class="btn-ghost" id="btnManualRefresh" title="Actualizar estado desde Supabase">
-          <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" fill="none"/>
-            <path d="M3 3v5h5M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" fill="none"/>
-            <path d="M16 16h5v5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" fill="none"/>
-          </svg>
-          <span>Actualizar</span>
-        </button>
-      </div>
-    </nav>
   </header>
 
-  <!-- Banner de Alerta o Notificación -->
+  <!-- Notificación Flotante -->
   <div class="container">
     <div id="globalAlertBanner" class="alert-banner hidden" role="alert"></div>
   </div>
@@ -113,155 +80,123 @@
     <!-- VISTA 1: PANEL PRINCIPAL                                           -->
     <!-- ================================================================== -->
     <section id="view-panel" class="dashboard-view active" role="tabpanel" aria-labelledby="tab-panel">
-      <div class="panel-hero-grid">
-        <!-- Tarjeta de Control y Ciclo de Creación -->
-        <article class="card card-editorial-featured">
-          <div class="card-header-line">
-            <span class="section-kicker">CONTROL DE CICLO AUTÓNOMO (60 MINUTOS)</span>
-            <span class="live-indicator" id="workerOperationBadge">
-              <span class="pulse-ring" aria-hidden="true"></span>
-              <span id="workerOperationText">En espera de ciclo</span>
-            </span>
+      <div class="panel-grid">
+        <!-- Tarjeta Principal del Ciclo -->
+        <article class="card card-hero">
+          <div class="hero-top">
+            <span class="badge-kicker" id="workerOperationText">En espera de ciclo</span>
+            <span class="cycle-counter-pill" id="panelInterventionCounter">0 / 6 estrofas</span>
           </div>
 
-          <h2 class="editorial-heading" id="panelActivePoemTitle">Sin ciclo activo en ejecución</h2>
-          <p class="editorial-theme" id="panelActivePoemTheme">
-            Inicie un ciclo de creación literaria para que POETA componga progresivamente una obra de 6 estrofas durante 60 minutos (una intervención cada 10 minutos).
+          <h2 class="hero-poem-title" id="panelActivePoemTitle">Listo para iniciar una nueva obra</h2>
+          <p class="hero-poem-theme" id="panelActivePoemTheme">
+            Ciclo autónomo de 60 minutos: una estrofa cada 10 minutos con memoria persistente en Supabase.
           </p>
 
-          <!-- Progreso del Ciclo de 60 Minutos -->
-          <div class="cycle-progress-box">
-            <div class="progress-stats-row">
-              <div>
-                <span class="metric-label">PROGRESO DEL CICLO</span>
-                <strong class="metric-value-inline" id="panelProgressPercent">0%</strong>
-              </div>
-              <div>
-                <span class="metric-label">INTERVENCIÓN</span>
-                <strong class="metric-value-inline" id="panelInterventionCounter">0 / 6</strong>
-              </div>
+          <!-- Barra de Progreso Minimalista -->
+          <div class="progress-section">
+            <div class="progress-header">
+              <span>Progreso del ciclo (60 min)</span>
+              <strong id="panelProgressPercent">0%</strong>
             </div>
-            <div class="progress-bar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="cycleProgressBarTrack">
-              <div class="progress-bar-fill" id="cycleProgressBarFill" style="width: 0%"></div>
+            <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="cycleProgressBarTrack">
+              <div class="progress-fill" id="cycleProgressBarFill" style="width: 0%"></div>
             </div>
 
-            <!-- Hitos de los 60 minutos -->
-            <div class="milestones-grid" id="cycleMilestonesGrid" aria-label="Distribución de intervenciones del ciclo">
-              <div class="milestone-step" data-step="1">
-                <span class="m-dot"></span>
-                <span class="m-time">Min 00</span>
-                <span class="m-desc">Estrofa I</span>
+            <!-- Línea de hitos limpia -->
+            <div class="steps-row" id="cycleMilestonesGrid">
+              <div class="step-item" data-step="1">
+                <span class="step-dot"></span>
+                <span class="step-label">00m</span>
               </div>
-              <div class="milestone-step" data-step="2">
-                <span class="m-dot"></span>
-                <span class="m-time">Min 10</span>
-                <span class="m-desc">Estrofa II</span>
+              <div class="step-item" data-step="2">
+                <span class="step-dot"></span>
+                <span class="step-label">10m</span>
               </div>
-              <div class="milestone-step" data-step="3">
-                <span class="m-dot"></span>
-                <span class="m-time">Min 20</span>
-                <span class="m-desc">Estrofa III</span>
+              <div class="step-item" data-step="3">
+                <span class="step-dot"></span>
+                <span class="step-label">20m</span>
               </div>
-              <div class="milestone-step" data-step="4">
-                <span class="m-dot"></span>
-                <span class="m-time">Min 30</span>
-                <span class="m-desc">Estrofa IV</span>
+              <div class="step-item" data-step="4">
+                <span class="step-dot"></span>
+                <span class="step-label">30m</span>
               </div>
-              <div class="milestone-step" data-step="5">
-                <span class="m-dot"></span>
-                <span class="m-time">Min 40</span>
-                <span class="m-desc">Estrofa V</span>
+              <div class="step-item" data-step="5">
+                <span class="step-dot"></span>
+                <span class="step-label">40m</span>
               </div>
-              <div class="milestone-step" data-step="6">
-                <span class="m-dot"></span>
-                <span class="m-time">Min 50</span>
-                <span class="m-desc">Estrofa VI</span>
+              <div class="step-item" data-step="6">
+                <span class="step-dot"></span>
+                <span class="step-label">50m</span>
               </div>
-              <div class="milestone-step" data-step="close">
-                <span class="m-dot"></span>
-                <span class="m-time">Min 60</span>
-                <span class="m-desc">Archivo</span>
+              <div class="step-item" data-step="close">
+                <span class="step-dot"></span>
+                <span class="step-label">60m</span>
               </div>
             </div>
           </div>
 
-          <!-- Formulario de Inicio de Ciclo -->
-          <form id="startCycleForm" class="start-cycle-form">
-            <div class="form-row">
-              <div class="form-group">
-                <label for="seedThemeInput" class="form-label">Inspiración o motivo lírico inicial (opcional)</label>
-                <input
-                  type="text"
-                  id="seedThemeInput"
-                  name="seed_theme"
-                  class="form-input"
-                  maxlength="300"
-                  placeholder="Ej.: La memoria del agua en los relojes de arena..."
-                />
-              </div>
-              <div class="form-group hidden" id="adminTokenGroup">
-                <label for="adminTokenInput" class="form-label">Clave administrativa (X-Admin-Token)</label>
+          <!-- Formulario Limpio de Inicio -->
+          <form id="startCycleForm" class="start-form">
+            <div class="start-input-group">
+              <input
+                type="text"
+                id="seedThemeInput"
+                name="seed_theme"
+                class="input-modern"
+                maxlength="300"
+                placeholder="Motivo o inspiración opcional (ej. El eco de la lluvia en la memoria)..."
+                aria-label="Inspiración temática opcional"
+              />
+              <div class="hidden" id="adminTokenGroup">
                 <input
                   type="password"
                   id="adminTokenInput"
-                  class="form-input"
+                  class="input-modern"
                   autocomplete="off"
-                  placeholder="Token configurado en ADMIN_API_TOKEN"
+                  placeholder="Clave X-Admin-Token"
+                  aria-label="Clave administrativa"
                 />
               </div>
-            </div>
-            <div class="form-actions">
               <button type="submit" class="btn-primary" id="btnStartCycle">
-                <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12 19l7-7 3 3-7 7-3-3z" stroke="currentColor" stroke-width="1.75" fill="none"/>
-                  <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" stroke="currentColor" stroke-width="1.75" fill="none"/>
-                  <path d="M2 2l7.586 7.586" stroke="currentColor" stroke-width="1.75"/>
-                </svg>
-                <span id="btnStartCycleText">Iniciar Ciclo Poético de 60 Minutos</span>
+                <span id="btnStartCycleText">Iniciar Ciclo</span>
               </button>
-              <span class="exclusivity-note" id="cycleExclusivityHint">
-                Regla de exclusividad activa: máximo 1 poema en ejecución simultánea.
-              </span>
             </div>
           </form>
         </article>
 
-        <!-- Tarjetas de Telemetría Temporal -->
-        <div class="telemetry-cards-column">
-          <div class="telemetry-grid-2x2">
-            <article class="card metric-card">
-              <span class="metric-kicker">TIEMPO TRANSCURRIDO</span>
-              <div class="metric-big" id="metricElapsed">00m 00s</div>
-              <span class="metric-sub" id="metricTotalDuration">Duración total: 60 min</span>
+        <!-- Columna de Métricas y Última Estrofa -->
+        <div class="side-column">
+          <div class="metrics-grid">
+            <article class="card metric-tile">
+              <span class="tile-label">Transcurrido</span>
+              <div class="tile-value" id="metricElapsed">00m 00s</div>
             </article>
 
-            <article class="card metric-card">
-              <span class="metric-kicker">TIEMPO RESTANTE</span>
-              <div class="metric-big" id="metricRemaining">00m 00s</div>
-              <span class="metric-sub" id="metricCloseRule">Cierre automático al min 60</span>
+            <article class="card metric-tile">
+              <span class="tile-label">Restante</span>
+              <div class="tile-value" id="metricRemaining">00m 00s</div>
             </article>
 
-            <article class="card metric-card">
-              <span class="metric-kicker">PRÓXIMA EJECUCIÓN</span>
-              <div class="metric-timestamp" id="metricNextExecution">Sin programación activa</div>
-              <span class="metric-sub">Intervalo fijo: cada 10 minutos</span>
+            <article class="card metric-tile">
+              <span class="tile-label">Próxima intervención</span>
+              <div class="tile-time" id="metricNextExecution">&mdash;</div>
             </article>
 
-            <article class="card metric-card">
-              <span class="metric-kicker">ÚLTIMA ACTIVIDAD</span>
-              <div class="metric-timestamp" id="metricLastExecution">Sin registros previos</div>
-              <span class="metric-sub" id="metricLastState">Estado: IDLE</span>
+            <article class="card metric-tile">
+              <span class="tile-label">Última actividad</span>
+              <div class="tile-time" id="metricLastExecution">&mdash;</div>
             </article>
           </div>
 
-          <!-- Vista previa rápida del poema en el Panel Principal -->
-          <article class="card preview-card">
-            <div class="card-header-line">
-              <span class="section-kicker">ÚLTIMA ESTROFA INCORPORADA EN MEMORIA</span>
-              <button type="button" class="link-button" data-goto-view="view-poem">Ver obra completa &rarr;</button>
+          <!-- Última estrofa generada -->
+          <article class="card stanza-spotlight-card">
+            <div class="spotlight-header">
+              <span class="tile-label">Última estrofa en memoria</span>
+              <button type="button" class="btn-link" data-goto-view="view-poem">Abrir poema &rarr;</button>
             </div>
-            <blockquote class="stanza-preview-quote" id="panelLatestStanzaPreview">
-              Aún no hay versos generados en el ciclo actual.
+            <blockquote class="spotlight-quote" id="panelLatestStanzaPreview">
+              Aún no se han generado versos en este ciclo.
             </blockquote>
           </article>
         </div>
@@ -269,204 +204,154 @@
     </section>
 
     <!-- ================================================================== -->
-    <!-- VISTA 2: POEMA ACTUAL Y ARCHIVO LITERARIO                          -->
+    <!-- VISTA 2: POEMA ACTUAL Y ARCHIVO                                    -->
     <!-- ================================================================== -->
     <section id="view-poem" class="dashboard-view" role="tabpanel" aria-labelledby="tab-poem">
-      <div class="poem-layout-grid">
-        <!-- Pliego Principal del Poema Actual -->
-        <article class="card poem-folio-card">
-          <div class="folio-header">
-            <div class="folio-meta-top">
-              <span class="section-kicker" id="folioCycleBadge">COMPOSICIÓN EN CURSO</span>
-              <span class="folio-id" id="folioPoemId">ID: --</span>
+      <div class="poem-view-grid">
+        <!-- Lienzo Literario -->
+        <article class="card poem-canvas">
+          <div class="poem-canvas-header">
+            <div class="poem-badges-row">
+              <span class="badge-kicker" id="folioCycleBadge">EN CURSO</span>
+              <span class="poem-meta-chip" id="folioStatus">IDLE</span>
+              <span class="poem-meta-chip" id="folioInterventions">0 / 6 estrofas</span>
             </div>
-            <h2 class="folio-title" id="folioTitle">Sin poema activo</h2>
-            <p class="folio-theme" id="folioTheme">Cuando el agente inicie un ciclo, el título, la temática y las seis estrofas evolucionarán en este pliego.</p>
 
-            <div class="folio-stats-bar">
-              <div class="folio-stat">
-                <span>Estado del ciclo:</span>
-                <strong id="folioStatus">IDLE</strong>
-              </div>
-              <div class="folio-stat">
-                <span>Intervenciones confirmadas:</span>
-                <strong id="folioInterventions">0 de 6</strong>
-              </div>
-              <div class="folio-stat">
-                <span>Inicio (America/Bogota):</span>
-                <strong id="folioStartedAt">--</strong>
-              </div>
-              <div class="folio-stat">
-                <span>Última actualización:</span>
-                <strong id="folioUpdatedAt">--</strong>
-              </div>
+            <h2 class="poem-main-title" id="folioTitle">Sin poema activo</h2>
+            <p class="poem-main-theme" id="folioTheme">Inicia un ciclo desde el Panel para comenzar la composición.</p>
+
+            <div class="poem-timestamps-row">
+              <span>Inicio: <strong id="folioStartedAt">&mdash;</strong></span>
+              <span>&middot;</span>
+              <span>Actualizado: <strong id="folioUpdatedAt">&mdash;</strong></span>
+              <span class="poem-id-subtle" id="folioPoemId"></span>
             </div>
           </div>
 
-          <hr class="editorial-divider" />
-
-          <!-- Contenedor de Estrofas Claramente Separadas -->
-          <div class="folio-stanzas-container" id="folioStanzasContainer" aria-live="polite">
-            <p class="empty-literary-state">No hay estrofas almacenadas para mostrar en este momento.</p>
+          <div class="stanzas-stream" id="folioStanzasContainer" aria-live="polite">
+            <p class="empty-state">No hay estrofas almacenadas todavía.</p>
           </div>
         </article>
 
-        <!-- Barra Lateral: Archivo de Poemas Finalizados -->
-        <aside class="card history-sidebar-card" aria-label="Historial de poemas archivados">
-          <div class="card-header-line">
-            <span class="section-kicker">ARCHIVO DE OBRAS FINALIZADAS</span>
-            <button type="button" class="link-button" id="btnRestoreCurrentPoem">Volver al actual</button>
+        <!-- Archivo Lateral -->
+        <aside class="card archive-sidebar" aria-label="Poemas finalizados">
+          <div class="sidebar-top">
+            <h3 class="sidebar-title">Archivo Literario</h3>
+            <button type="button" class="btn-link" id="btnRestoreCurrentPoem">Ver actual</button>
           </div>
-          <p class="sidebar-help">
-            Obras completadas al minuto 60 y archivadas permanentemente en Supabase.
-          </p>
           <div class="history-list" id="poemHistoryList">
-            <p class="empty-small">Sin poemas archivados aún.</p>
+            <p class="empty-small">Sin obras archivadas aún.</p>
           </div>
-          <div class="pagination-row" id="historyPaginationRow">
-            <button type="button" class="btn-page" id="btnHistoryPrev" disabled>&larr; Anterior</button>
-            <span class="page-indicator" id="historyPageInfo">Página 1</span>
-            <button type="button" class="btn-page" id="btnHistoryNext" disabled>Siguiente &rarr;</button>
+          <div class="pagination-bar" id="historyPaginationRow">
+            <button type="button" class="btn-page" id="btnHistoryPrev" disabled>&larr;</button>
+            <span class="page-info" id="historyPageInfo">1 / 1</span>
+            <button type="button" class="btn-page" id="btnHistoryNext" disabled>&rarr;</button>
           </div>
         </aside>
       </div>
     </section>
 
     <!-- ================================================================== -->
-    <!-- VISTA 3: EVOLUCIÓN LITERARIA (COMPARADOR DE 6 VERSIONES)           -->
+    <!-- VISTA 3: EVOLUCIÓN LITERARIA                                       -->
     <!-- ================================================================== -->
     <section id="view-evolution" class="dashboard-view" role="tabpanel" aria-labelledby="tab-evolution">
       <article class="card">
-        <div class="card-header-line">
+        <div class="evolution-top">
           <div>
-            <span class="section-kicker">TRAZABILIDAD DE MEMORIA PERSISTENTE</span>
-            <h2 class="view-title">Evolución Literaria de las Seis Intervenciones</h2>
+            <h2 class="section-title">Evolución de Versiones</h2>
+            <p class="section-subtitle" id="evolutionPoemTitle">Selecciona una versión para comparar cómo creció el poema</p>
           </div>
-          <div class="evolution-poem-indicator">
-            <span>Obra seleccionada:</span>
-            <strong id="evolutionPoemTitle">--</strong>
+          <div class="version-pills" id="versionPillsBar" role="group" aria-label="Versiones 1 a 6"></div>
+        </div>
+
+        <div class="compare-selectors">
+          <div class="selector-field">
+            <label for="selectVersionA">Versión anterior</label>
+            <select id="selectVersionA" class="select-modern"></select>
+          </div>
+          <div class="selector-field">
+            <label for="selectVersionB">Versión siguiente</label>
+            <select id="selectVersionB" class="select-modern"></select>
           </div>
         </div>
 
-        <p class="view-lead">
-          Cada intervención (Minutos 00, 10, 20, 30, 40 y 50) recupera la memoria completa desde PostgreSQL y almacena una versión inmutable en <code>poem_versions</code>. Seleccione cualquier versión para inspeccionar la estrofa agregada y compararla con la versión siguiente.
-        </p>
-
-        <!-- Selector de las 6 versiones -->
-        <div class="version-pills-bar" id="versionPillsBar" role="group" aria-label="Selector de versiones del 1 al 6">
-          <!-- Renderizado dinámicamente por dashboard.js -->
-        </div>
-
-        <!-- Comparador Lado a Lado: Versión Seleccionada vs Versión Siguiente -->
-        <div class="comparison-controls-row">
-          <div class="comp-select-box">
-            <label for="selectVersionA" class="form-label">Versión Base (Anterior)</label>
-            <select id="selectVersionA" class="form-select"></select>
-          </div>
-          <div class="comp-select-box">
-            <label for="selectVersionB" class="form-label">Versión Comparada (Siguiente)</label>
-            <select id="selectVersionB" class="form-select"></select>
-          </div>
-        </div>
-
-        <div class="comparison-grid" id="versionComparisonGrid">
-          <!-- Panel Izquierdo: Versión A -->
-          <div class="comparison-pane" id="comparisonPaneA">
-            <div class="pane-header">
-              <span class="pane-badge" id="paneABadge">Versión --</span>
-              <span class="pane-meta" id="paneAMeta">--</span>
+        <div class="compare-grid" id="versionComparisonGrid">
+          <!-- Versión A -->
+          <div class="compare-card" id="comparisonPaneA">
+            <div class="compare-card-head">
+              <span class="version-tag" id="paneABadge">Versión &mdash;</span>
+              <span class="version-time" id="paneAMeta">&mdash;</span>
             </div>
-            <div class="added-stanza-highlight">
-              <span class="highlight-label">Estrofa agregada en esta intervención:</span>
-              <pre class="stanza-pre" id="paneAAddedStanza">--</pre>
+            <div class="stanza-diff-box">
+              <span class="diff-label">Estrofa incorporada</span>
+              <pre class="stanza-text" id="paneAAddedStanza">&mdash;</pre>
             </div>
-            <div class="full-version-box">
-              <span class="highlight-label">Texto completo acumulado en esta versión:</span>
-              <pre class="poem-full-pre" id="paneAFullText">--</pre>
+            <div class="full-poem-box">
+              <span class="diff-label">Poema acumulado</span>
+              <pre class="poem-text" id="paneAFullText">&mdash;</pre>
             </div>
           </div>
 
-          <!-- Panel Derecho: Versión B -->
-          <div class="comparison-pane" id="comparisonPaneB">
-            <div class="pane-header">
-              <span class="pane-badge pane-badge-accent" id="paneBBadge">Versión --</span>
-              <span class="pane-meta" id="paneBMeta">--</span>
+          <!-- Versión B -->
+          <div class="compare-card compare-card-highlight" id="comparisonPaneB">
+            <div class="compare-card-head">
+              <span class="version-tag version-tag-accent" id="paneBBadge">Versión &mdash;</span>
+              <span class="version-time" id="paneBMeta">&mdash;</span>
             </div>
-            <div class="added-stanza-highlight added-stanza-new">
-              <span class="highlight-label">Nueva estrofa agregada en esta intervención:</span>
-              <pre class="stanza-pre" id="paneBAddedStanza">--</pre>
+            <div class="stanza-diff-box stanza-diff-added">
+              <span class="diff-label">Nueva estrofa agregada</span>
+              <pre class="stanza-text" id="paneBAddedStanza">&mdash;</pre>
             </div>
-            <div class="full-version-box">
-              <span class="highlight-label">Texto completo acumulado en esta versión:</span>
-              <pre class="poem-full-pre" id="paneBFullText">--</pre>
+            <div class="full-poem-box">
+              <span class="diff-label">Poema acumulado</span>
+              <pre class="poem-text" id="paneBFullText">&mdash;</pre>
             </div>
           </div>
         </div>
 
-        <!-- Snapshot del Prompt enviado con la Memoria Recuperada -->
-        <details class="prompt-snapshot-drawer">
-          <summary>Inspeccionar contexto de memoria enviado a Ollama Cloud (Prompt Snapshot)</summary>
-          <pre class="prompt-snapshot-pre" id="evolutionPromptSnapshot">Seleccione una versión para visualizar el prompt exacto almacenado en PostgreSQL.</pre>
+        <details class="prompt-drawer">
+          <summary>Ver contexto de memoria enviado a Gemini AI</summary>
+          <pre class="prompt-code" id="evolutionPromptSnapshot">Sin versión seleccionada.</pre>
         </details>
       </article>
     </section>
 
     <!-- ================================================================== -->
-    <!-- VISTA 4: REGISTRO DE ACTIVIDAD (BITÁCORA CRONOLÓGICA)              -->
+    <!-- VISTA 4: REGISTRO DE ACTIVIDAD                                     -->
     <!-- ================================================================== -->
     <section id="view-logs" class="dashboard-view" role="tabpanel" aria-labelledby="tab-logs">
       <article class="card">
-        <div class="card-header-line">
-          <div>
-            <span class="section-kicker">AUDITORÍA Y TRAZABILIDAD EN POSTGRESQL (AGENT_LOGS)</span>
-            <h2 class="view-title">Línea de Tiempo de Actividades y Decisiones</h2>
-          </div>
-
-          <div class="logs-filter-bar">
-            <label for="logEventTypeFilter" class="sr-only">Filtrar por tipo de evento</label>
-            <select id="logEventTypeFilter" class="form-select">
-              <option value="">Todos los eventos</option>
-              <option value="AGENT_STARTED">Agente iniciado (AGENT_STARTED)</option>
-              <option value="CYCLE_CREATED">Ciclo creado (CYCLE_CREATED)</option>
-              <option value="MEMORY_RECOVERED">Memoria recuperada (MEMORY_RECOVERED)</option>
-              <option value="OLLAMA_REQUEST_SENT">Solicitud a Ollama (OLLAMA_REQUEST_SENT)</option>
-              <option value="OLLAMA_RESPONSE_RECEIVED">Respuesta de Ollama (OLLAMA_RESPONSE_RECEIVED)</option>
-              <option value="STANZA_GENERATED">Nueva estrofa generada (STANZA_GENERATED)</option>
-              <option value="VERSION_STORED">Nueva versión almacenada (VERSION_STORED)</option>
-              <option value="INTERVENTION_COMPLETED">Intervención completada (INTERVENTION_COMPLETED)</option>
-              <option value="STATE_TRANSITION">Transición de estado (STATE_TRANSITION)</option>
-              <option value="RECOVERY_COMPLETED">Recuperación realizada (RECOVERY_COMPLETED)</option>
-              <option value="ERROR_DETECTED">Error detectado (ERROR_DETECTED)</option>
-              <option value="POEM_COMPLETED">Poema finalizado (POEM_COMPLETED)</option>
-            </select>
-          </div>
+        <div class="logs-top">
+          <h2 class="section-title">Registro de Actividad</h2>
+          <select id="logEventTypeFilter" class="select-modern select-compact" aria-label="Filtrar eventos">
+            <option value="">Todos los eventos</option>
+            <option value="AGENT_STARTED">Inicio del agente</option>
+            <option value="CYCLE_CREATED">Creación de ciclo</option>
+            <option value="MEMORY_RECOVERED">Recuperación de memoria</option>
+            <option value="GEMINI_REQUEST_SENT">Petición a Gemini AI</option>
+            <option value="GEMINI_RESPONSE_RECEIVED">Respuesta de Gemini AI</option>
+            <option value="STANZA_GENERATED">Estrofa generada</option>
+            <option value="VERSION_STORED">Versión guardada</option>
+            <option value="INTERVENTION_COMPLETED">Intervención completada</option>
+            <option value="STATE_TRANSITION">Cambio de estado</option>
+            <option value="RECOVERY_COMPLETED">Recuperación</option>
+            <option value="ERROR_DETECTED">Errores</option>
+            <option value="POEM_COMPLETED">Cierre de poema</option>
+          </select>
         </div>
 
-        <div class="timeline-container" id="activityTimelineContainer" aria-live="polite">
-          <p class="empty-literary-state">Cargando registros de actividad desde Supabase...</p>
+        <div class="timeline" id="activityTimelineContainer" aria-live="polite">
+          <p class="empty-state">Cargando actividad...</p>
         </div>
 
-        <div class="pagination-row" id="logsPaginationRow">
+        <div class="pagination-bar" id="logsPaginationRow">
           <button type="button" class="btn-page" id="btnLogsPrev" disabled>&larr; Anterior</button>
-          <span class="page-indicator" id="logsPageInfo">Página 1</span>
+          <span class="page-info" id="logsPageInfo">Página 1</span>
           <button type="button" class="btn-page" id="btnLogsNext" disabled>Siguiente &rarr;</button>
         </div>
       </article>
     </section>
   </main>
-
-  <!-- Pie de Página Editorial -->
-  <footer class="editorial-footer">
-    <div class="container footer-inner">
-      <div>
-        <strong>POETA</strong> &mdash; Agente Persistente de Creación Literaria Autónoma.
-        Ciclo regulado de 60 minutos &middot; 6 intervenciones cada 10 minutos.
-      </div>
-      <div class="footer-tech">
-        Arquitectura: Python Flask &middot; APScheduler Worker &middot; Ollama Cloud REST API &middot; Supabase PostgreSQL
-      </div>
-    </div>
-  </footer>
 
   <script src="/js/dashboard.js"></script>
 </body>

@@ -2,7 +2,7 @@
 Configuración central y reglas de negocio inmutables de POETA.
 
 Define las constantes obligatorias del ciclo literario de 60 minutos,
-la conexión con Supabase (PostgreSQL), la configuración de Ollama Cloud,
+la conexión con Supabase (PostgreSQL), la configuración de Google Gemini AI,
 las utilidades de zona horaria (UTC -> America/Bogota) y la protección
 del modo acelerado de pruebas.
 """
@@ -35,8 +35,8 @@ AUTO_START_NEXT_POEM: bool = False
 PERMANENT_PERSISTENCE: bool = True
 
 DEFAULT_DISPLAY_TIMEZONE: str = "America/Bogota"
-DEFAULT_OLLAMA_CLOUD_BASE_URL: str = "https://ollama.com/api"
-DEFAULT_OLLAMA_MODEL: str = "gemma3:27b"
+DEFAULT_GEMINI_BASE_URL: str = "https://generativelanguage.googleapis.com/v1beta"
+DEFAULT_GEMINI_MODEL: str = "gemini-3.1-flash-lite"
 
 
 def get_bogota_tz() -> ZoneInfo:
@@ -84,7 +84,7 @@ def format_bogota_display(dt: datetime | None) -> str | None:
     if utc_dt is None:
         return None
     bogota_dt = utc_dt.astimezone(get_bogota_tz())
-    return bogota_dt.strftime("%Y-%m-%d %H:%M:%S %Z")
+    return bogota_dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
 def normalize_database_url(raw_url: str | None, app_env: str = "development") -> str:
@@ -122,12 +122,13 @@ class AppConfig:
     supabase_anon_key: str
     supabase_service_role_key: str
 
-    # Proveedor de IA (Ollama Cloud)
-    ollama_base_url: str
-    ollama_api_key: str
-    ollama_model: str
-    ollama_timeout_seconds: int
-    ollama_max_retries: int
+    # Proveedor de IA (Google Gemini API)
+    ai_provider: str
+    gemini_base_url: str
+    gemini_api_key: str
+    gemini_model: str
+    ai_timeout_seconds: int
+    ai_max_retries: int
 
     # Planificación y Reglas de Negocio
     cycle_duration_minutes: int
@@ -154,13 +155,18 @@ class AppConfig:
         return bool(self.database_url and "tu-proyecto.supabase.co" not in self.database_url)
 
     @property
-    def has_ollama_configured(self) -> bool:
-        return bool(
-            self.ollama_api_key
-            and self.ollama_api_key != "tu_ollama_cloud_api_key"
-            and self.ollama_base_url
-            and self.ollama_model
-        )
+    def has_gemini_configured(self) -> bool:
+        placeholder_values = {
+            "",
+            "tu_gemini_api_key",
+            "PEGAR_AQUI_TU_GEMINI_API_KEY",
+            "tu_api_key_de_gemini",
+        }
+        return bool(self.gemini_api_key and self.gemini_api_key not in placeholder_values)
+
+    @property
+    def active_ai_model(self) -> str:
+        return self.gemini_model
 
     @property
     def admin_auth_required(self) -> bool:
@@ -183,7 +189,6 @@ def load_config(overrides: dict | None = None) -> AppConfig:
     app_env = env.get("APP_ENV", "development").strip().lower()
     requested_accelerated = env.get("POETA_ACCELERATED_TEST", "false").strip().lower() == "true"
 
-    # Guardia estricta: el modo acelerado jamás puede activarse en producción o desarrollo normal
     if requested_accelerated and app_env != "testing":
         logger.warning(
             "Intento de activar POETA_ACCELERATED_TEST con APP_ENV='%s' rechazado. "
@@ -204,9 +209,30 @@ def load_config(overrides: dict | None = None) -> AppConfig:
     raw_db_url = env.get("DATABASE_URL", "")
     database_url = normalize_database_url(raw_db_url, app_env=app_env)
 
-    ollama_base_url = env.get("OLLAMA_BASE_URL", DEFAULT_OLLAMA_CLOUD_BASE_URL).strip().rstrip("/")
-    if not ollama_base_url:
-        ollama_base_url = DEFAULT_OLLAMA_CLOUD_BASE_URL
+    gemini_api_key = (
+        env.get("GEMINI_API_KEY", "").strip()
+        or env.get("GOOGLE_API_KEY", "").strip()
+    )
+
+    gemini_base_url = (
+        env.get("GEMINI_BASE_URL", DEFAULT_GEMINI_BASE_URL).strip().rstrip("/")
+        or DEFAULT_GEMINI_BASE_URL
+    )
+    gemini_model = (
+        env.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL).strip()
+        or DEFAULT_GEMINI_MODEL
+    )
+
+    timeout_seconds = int(
+        env.get("GEMINI_TIMEOUT_SECONDS")
+        or env.get("AI_TIMEOUT_SECONDS")
+        or "60"
+    )
+    max_retries = int(
+        env.get("GEMINI_MAX_RETRIES")
+        or env.get("AI_MAX_RETRIES")
+        or "2"
+    )
 
     return AppConfig(
         app_env=app_env,
@@ -219,11 +245,12 @@ def load_config(overrides: dict | None = None) -> AppConfig:
         supabase_url=env.get("SUPABASE_URL", "").strip(),
         supabase_anon_key=env.get("SUPABASE_ANON_KEY", "").strip(),
         supabase_service_role_key=env.get("SUPABASE_SERVICE_ROLE_KEY", "").strip(),
-        ollama_base_url=ollama_base_url,
-        ollama_api_key=env.get("OLLAMA_API_KEY", "").strip(),
-        ollama_model=env.get("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL).strip() or DEFAULT_OLLAMA_MODEL,
-        ollama_timeout_seconds=int(env.get("OLLAMA_TIMEOUT_SECONDS", "60")),
-        ollama_max_retries=int(env.get("OLLAMA_MAX_RETRIES", "2")),
+        ai_provider="gemini",
+        gemini_base_url=gemini_base_url,
+        gemini_api_key=gemini_api_key,
+        gemini_model=gemini_model,
+        ai_timeout_seconds=timeout_seconds,
+        ai_max_retries=max_retries,
         cycle_duration_minutes=PRODUCTION_CYCLE_DURATION_MINUTES,
         intervention_interval_minutes=PRODUCTION_INTERVENTION_INTERVAL_MINUTES,
         cycle_duration_seconds=cycle_duration_seconds,

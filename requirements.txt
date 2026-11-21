@@ -1,0 +1,25 @@
+# ==============================================================================
+# POETA: Agente Persistente de Creación Literaria Autónoma
+# Dependencias de Producción y Pruebas
+# ==============================================================================
+
+# Backend HTTP & API REST
+Flask>=3.0.0
+flask-cors>=5.0.0
+gunicorn>=23.0.0
+
+# Base de Datos Relacional (Supabase PostgreSQL) & Migraciones
+SQLAlchemy>=2.0.35
+alembic>=1.14.0
+psycopg2-binary>=2.9.10
+
+# Planificador Autónomo Persistente
+APScheduler>=3.10.4
+
+# Cliente HTTP & Configuración
+requests>=2.32.0
+python-dotenv>=1.0.1
+tzdata>=2024.2
+
+# Pruebas Unitarias y de Integración
+pytest>=8.3.0
